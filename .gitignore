@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.DS_Store
+
+omniai.sqlite-shm
+omniai.sqlite-wal
+.flask_session/
+
+storage/
+browser_images/
+models/
+OmniAIMain/

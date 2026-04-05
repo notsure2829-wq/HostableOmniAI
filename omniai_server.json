@@ -1,0 +1,14 @@
+{
+  "active_model_path": "",
+  "active_projector_path": "",
+  "context_length": 99328,
+  "host": "127.0.0.1",
+  "port": 8033,
+  "flash_attn": true,
+  "batch_size": 4096,
+  "ubatch_size": 512,
+  "threads": 8,
+  "cache_type_k": "q8_0",
+  "cache_type_v": "q8_0",
+  "models_dir": "models"
+}
