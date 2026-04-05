@@ -31,8 +31,57 @@ import datetime
 from typing import Any
 from urllib.parse import quote
 
-import omniai_server
-from omniai_server import get_app_root, get_resource_root
+HOSTED_MODE = os.environ.get("OMNIAI_HOSTED_MODE", "false").lower() == "true"
+
+if HOSTED_MODE:
+    def get_app_root():
+        return os.path.dirname(os.path.abspath(__file__))
+
+    def get_resource_root():
+        return get_app_root()
+
+    class _HostedOmniaiServerStub:
+        MODELS_DIR = os.path.join(get_app_root(), "models")
+        _active_projector_path = None
+        _context_length = 8192
+
+        @staticmethod
+        def load_config():
+            return {}
+
+        @staticmethod
+        def save_config(_config):
+            return None
+
+        @staticmethod
+        def get_server_status():
+            return {"running": False, "model": None, "port": None}
+
+        @staticmethod
+        def start_server(*_args, **_kwargs):
+            return None
+
+        @staticmethod
+        def stop_server(*_args, **_kwargs):
+            return None
+
+        @staticmethod
+        def get_local_models():
+            return []
+
+        @staticmethod
+        def restart_with_model(_filename):
+            return False
+
+        @staticmethod
+        def download_model(*_args, **_kwargs):
+            return None
+
+    omniai_server = _HostedOmniaiServerStub()
+else:
+    import omniai_server
+    from omniai_server import get_app_root, get_resource_root
+
 from workspace_runtime import WorkspaceRuntime, WorkspaceRuntimeError, RuntimeLimits
 
 try:
@@ -43,7 +92,6 @@ except ImportError:
 APP_ROOT = get_app_root()
 RESOURCE_ROOT = get_resource_root()
 MODELS_DIR = omniai_server.MODELS_DIR
-HOSTED_MODE = os.environ.get("OMNIAI_HOSTED_MODE", "false").lower() == "true"
 WORKSPACE_OWNER_ONLY = os.environ.get("OMNIAI_WORKSPACE_OWNER_ONLY", "true").lower() != "false"
 WORKSPACE_FEATURES_ENABLED = os.environ.get(
     "OMNIAI_ENABLE_WORKSPACES",
