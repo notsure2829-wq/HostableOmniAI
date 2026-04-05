@@ -1540,52 +1540,25 @@ def serve_storage(filename):
 def serve_browser_image(filename):
     return send_from_directory(BROWSER_IMAGE_STORAGE, filename)
 
-
-
-
-LLAMA_SERVER_URL = "http://localhost:8033/v1"
-LLAMA_SERVER_API_KEY = "sk-no-key-required"
 def get_openai_client():
-    """Returns (client, model_name) matching either the configured Cloud Model or Local LLaMA server."""
+    """Return the configured hosted model client. Local model fallback is disabled."""
     env_base_url = os.environ.get("LLM_BASE_URL", "").strip()
     env_api_key = os.environ.get("LLM_API_KEY", "").strip()
     env_model_name = os.environ.get("LLM_MODEL", "").strip()
-    use_cloud = HOSTED_MODE or bool(env_base_url) or database.get_setting("use_cloud_model") == "true"
-    if use_cloud:
-        base_url = env_base_url or database.get_setting("cloud_model_base_url") or "https://openrouter.ai/api/v1"
-        api_key = env_api_key or database.get_setting("cloud_model_api_key") or ""
-        model_name = env_model_name or database.get_setting("cloud_model_name") or "auto"
-        return OpenAI(base_url=base_url, api_key=api_key), model_name
-    else:
-        return OpenAI(base_url=LLAMA_SERVER_URL, api_key=LLAMA_SERVER_API_KEY), "local-model"
+    base_url = env_base_url or database.get_setting("cloud_model_base_url") or "https://openrouter.ai/api/v1"
+    api_key = env_api_key or database.get_setting("cloud_model_api_key") or ""
+    model_name = env_model_name or database.get_setting("cloud_model_name") or ""
+    if not api_key or not model_name:
+        raise RuntimeError("Hosted model configuration is incomplete. Set LLM_API_KEY and LLM_MODEL.")
+    return OpenAI(base_url=base_url, api_key=api_key), model_name
 
 # --- Migrate old DB model config to omniai_server.json (one-time) ---
 def _migrate_model_config_to_json():
-    config = omniai_server.load_config()
-    if config.get("active_model_path"):
-        return
-    model_path = database.get_setting("active_model_path")
-    if model_path:
-        config["active_model_path"] = model_path
-        config["active_projector_path"] = database.get_setting("active_projector_path") or ""
-        ctx = database.get_setting("context_length")
-        if ctx:
-            config["context_length"] = int(ctx)
-        omniai_server.save_config(config)
+    return None
 
 # --- Auto-start local server if not using cloud ---
 def _auto_start_local_server():
-    if HOSTED_MODE:
-        return
-    if database.get_setting("use_cloud_model") == "true":
-        return
-    try:
-        status = omniai_server.get_server_status()
-        if status["running"]:
-            return
-    except:
-        pass
-    omniai_server.start_server()
+    return None
 
 # Initialize Database
 database.init_db()
@@ -1593,8 +1566,6 @@ database.init_db()
 # Run one-time migration and auto-start
 _migrate_model_config_to_json()
 _auto_start_local_server()
-atexit.register(omniai_server.stop_server)
-signal.signal(signal.SIGTERM, lambda n, f: omniai_server.stop_server())
 
 
 def _resolve_conversation_id(payload=None):
